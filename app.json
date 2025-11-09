@@ -32,11 +32,13 @@
       ]
     },
     "android": {
+      "package": "com.printease.app",
+      "permissions": ["INTERNET"],
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.printease.app",
       "intentFilters": [
         {
           "action": "VIEW",
@@ -47,13 +49,11 @@
               "host": "payment-success"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ]
     },
+
     "extra": {
       "eas": {
         "projectId": "686b0174-1133-4342-835d-eccce3cce58c"
