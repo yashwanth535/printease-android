@@ -5,8 +5,12 @@ export type RootStackParamList = {
   Vendors: undefined;
   Payments: undefined;
   Dashboard: undefined;
-  Favorites: undefined;
+  Favourites: undefined;
   Notifications: undefined;
   Profile: undefined;
   Cart: undefined;
+  Checkout: { selectedOrders: string[]; totalAmount: number } | undefined;
+  CreateOrder: { vendorId?: string } | undefined;
+  VendorProfile: { vendorId: string };
+  PaymentSuccess: { order_id?: string; total_amount?: string } | undefined;
 };

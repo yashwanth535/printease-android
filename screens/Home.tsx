@@ -1,11 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+  Alert,
+  ActivityIndicator,
+  SafeAreaView,
+  Modal,
+  Platform,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { MotiView } from "moti";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { FontAwesome5 } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
 import { RootStackParamList } from "../roots/types";
+import UserHeader from "../components/global/UserHeader";
+import BottomNavigation from "../components/global/BottomNavigation";
 
 const API_URL = process.env.API_URL as string;
 
@@ -46,24 +58,20 @@ const Home: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
 
   const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState<"active" | "completed" | "pending">("active");
   const [deletingOrder, setDeletingOrder] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [token, setToken] = useState<TokenJSON | null>(null);
 
-  // Load token from SecureStore
+  // Load token
   useEffect(() => {
     const loadToken = async () => {
       const tokenString = await SecureStore.getItemAsync("accessToken");
-      if (!tokenString) {
-        console.log("No token found");
-        return;
-      }
+      if (!tokenString) return;
       try {
-        const parsedToken: TokenJSON = JSON.parse(tokenString);
-        setToken(parsedToken);
+        setToken(JSON.parse(tokenString));
       } catch (err) {
         console.error("Failed to parse token:", err);
       }
@@ -71,7 +79,6 @@ const Home: React.FC = () => {
     loadToken();
   }, []);
 
-  // Fetch orders once token is available
   useEffect(() => {
     if (token) fetchOrders();
   }, [token]);
@@ -80,18 +87,14 @@ const Home: React.FC = () => {
     if (!token) return;
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/order/mobile`, {
+      const res = await fetch(`${API_URL}/api/order/mobile`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(token),
       });
-
-      const data: FetchOrdersResponse = await response.json();
-      if (data.success && data.orders) {
-        setOrders(data.orders);
-      } else {
-        setError(data.message || "Failed to fetch orders");
-      }
+      const data: FetchOrdersResponse = await res.json();
+      if (data.success && data.orders) setOrders(data.orders);
+      else setError(data.message || "Failed to fetch orders");
     } catch (err) {
       console.error(err);
       setError("Error fetching orders");
@@ -110,19 +113,14 @@ const Home: React.FC = () => {
           if (!token) return;
           try {
             setDeletingOrder(orderId);
-            const response = await fetch(`${API_URL}/api/order/${orderId}`, {
-              method: "DELETE",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${JSON.stringify(token)}`,
-              },
+            const res = await fetch(`${API_URL}/api/order/mobile/delete`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ ...token, orderId }),
             });
-            const data: FetchOrdersResponse = await response.json();
-            if (data.success) {
-              setOrders((prev) => prev.filter((o) => o._id !== orderId));
-            } else {
-              Alert.alert("Error", data.message || "Failed to delete order");
-            }
+            const data: FetchOrdersResponse = await res.json();
+            if (data.success) setOrders((prev) => prev.filter((o) => o._id !== orderId));
+            else Alert.alert("Error", data.message || "Failed to delete order");
           } catch (err) {
             console.error(err);
             Alert.alert("Error", "Failed to delete order");
@@ -134,121 +132,252 @@ const Home: React.FC = () => {
     ]);
   };
 
-  const getFilteredOrders = (): Order[] => {
-    return orders.filter((order) => {
-      switch (selectedTab) {
-        case "active":
-          return order.status === "accepted" || order.status === "in_progress";
-        case "completed":
-          return order.status === "completed";
-        case "pending":
-          return order.status === "pending";
-      }
-    });
-  };
+  const filteredOrders = orders.filter((o) =>
+    selectedTab === "active"
+      ? o.status === "accepted" || o.status === "in_progress"
+      : selectedTab === "completed"
+      ? o.status === "completed"
+      : o.status === "pending"
+  );
 
-  const ordersToShow = getFilteredOrders();
+  const pendingOrders = orders.filter((o) => o.status === "pending");
 
   const DetailRow: React.FC<{ label: string; value: string | number }> = ({ label, value }) => (
-    <View className="flex-row justify-between items-center p-3 bg-white/30 dark:bg-slate-800/30 rounded-xl mb-2">
-      <Text className="text-gray-700 dark:text-gray-300 font-medium">{label}</Text>
-      <Text className="font-semibold text-gray-900 dark:text-white">{value}</Text>
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        backgroundColor: "#f9fafb",
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 10,
+        marginBottom: 6,
+        elevation: Platform.OS === "android" ? 1 : 0,
+      }}
+    >
+      <Text style={{ color: "#555", fontWeight: "500" }}>{label}</Text>
+      <Text style={{ fontWeight: "700", color: "#111" }}>{value}</Text>
     </View>
   );
 
   return (
-    <ScrollView className="flex-1 bg-gray-50 dark:bg-slate-900 p-4">
-      {/* Tabs */}
-      <View className="flex-row justify-around mb-4">
-        {(["active", "completed", "pending"] as const).map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            onPress={() => setSelectedTab(tab)}
-            className={`px-4 py-2 rounded-xl ${
-              selectedTab === tab ? "bg-blue-500 dark:bg-blue-700" : "bg-white/50 dark:bg-slate-800/50"
-            }`}
-          >
-            <Text className={`${selectedTab === tab ? "text-white" : "text-gray-700 dark:text-gray-300"}`}>
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#f3f4f6" }}>
+      <UserHeader />
+      <ScrollView style={{ flex: 1, paddingHorizontal: 16 }} contentContainerStyle={{ paddingBottom: 140 }}>
+        {/* Tabs */}
+        <View style={{ flexDirection: "row", justifyContent: "space-around", marginVertical: 12 }}>
+          {(["active", "completed", "pending"] as const).map((tab) => (
+            <Pressable
+              key={tab}
+              onPress={() => setSelectedTab(tab)}
+              android_ripple={{ color: "#c7d2fe", borderless: false }}
+              style={{
+                flex: 1,
+                marginHorizontal: 4,
+                borderRadius: 12,
+                backgroundColor: selectedTab === tab ? "#2563eb" : "#e5e7eb",
+                paddingVertical: 10,
+                alignItems: "center",
+                elevation: selectedTab === tab ? 2 : 0,
+              }}
+            >
+              <Text style={{ color: selectedTab === tab ? "white" : "#374151", fontWeight: "600" }}>
+                {tab.toUpperCase()}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#2563eb" className="my-10" />
-      ) : error ? (
-        <Text className="text-red-500 text-center my-10">{error}</Text>
-      ) : ordersToShow.length === 0 ? (
-        <Text className="text-center text-gray-700 dark:text-gray-300 my-10">
-          No {selectedTab} orders yet
-        </Text>
-      ) : (
-        ordersToShow.map((order) => (
-          <MotiView
-            key={order._id}
-            from={{ opacity: 0, translateY: 20 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white/60 dark:bg-slate-800/60 p-4 rounded-xl mb-4"
-          >
-            <View className="flex-row justify-between mb-2">
-              <View>
-                <Text className="font-bold text-gray-900 dark:text-white">Order #{order._id.slice(-6)}</Text>
-                <Text className="text-gray-600 dark:text-gray-400">{order.vendorId?.shopName || "Unknown Vendor"}</Text>
-              </View>
-              <View className="flex-row items-center">
-                <Text className="px-2 py-1 rounded-full text-xs bg-green-200 dark:bg-green-700 text-green-700 dark:text-green-300">
-                  {order.status.toUpperCase()}
-                </Text>
-                {order.status === "pending" && (
-                  <TouchableOpacity
-                    onPress={() => handleDeleteOrder(order._id)}
-                    className="ml-2 p-2 bg-red-100 dark:bg-red-900/30 rounded-full"
+        {/* Orders */}
+        {loading ? (
+          <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 60 }} />
+        ) : error ? (
+          <Text style={{ textAlign: "center", color: "red", marginTop: 60 }}>{error}</Text>
+        ) : filteredOrders.length === 0 ? (
+          <Text style={{ textAlign: "center", color: "#555", marginTop: 60 }}>No {selectedTab} orders yet</Text>
+        ) : (
+          filteredOrders.map((order) => (
+            <MotiView
+              key={order._id}
+              from={{ opacity: 0, translateY: 10 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ delay: 0.1 }}
+              style={{
+                backgroundColor: "white",
+                borderRadius: 14,
+                padding: 16,
+                marginBottom: 12,
+                elevation: 3,
+              }}
+            >
+              <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
+                <View>
+                  <Text style={{ fontWeight: "bold", color: "#111" }}>Order #{order._id.slice(-6)}</Text>
+                  <Text style={{ color: "#666" }}>{order.vendorId?.shopName || "Unknown Vendor"}</Text>
+                </View>
+
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <View
+                    style={{
+                      backgroundColor:
+                        order.status === "completed"
+                          ? "#dcfce7"
+                          : order.status === "pending"
+                          ? "#fef9c3"
+                          : "#dbeafe",
+                      borderRadius: 12,
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                    }}
                   >
-                    <FontAwesome5 name="trash" size={16} color="red" />
-                  </TouchableOpacity>
-                )}
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        fontWeight: "600",
+                        color:
+                          order.status === "completed"
+                            ? "#166534"
+                            : order.status === "pending"
+                            ? "#92400e"
+                            : "#1d4ed8",
+                      }}
+                    >
+                      {order.status.replace("_", " ").toUpperCase()}
+                    </Text>
+                  </View>
+
+                  {order.status === "pending" && (
+                    <Pressable
+                      onPress={() => handleDeleteOrder(order._id)}
+                      android_ripple={{ color: "#fee2e2", borderless: true }}
+                      style={{
+                        marginLeft: 8,
+                        backgroundColor: "#fee2e2",
+                        borderRadius: 50,
+                        padding: 6,
+                      }}
+                    >
+                      <FontAwesome5 name="trash" size={16} color="#b91c1c" />
+                    </Pressable>
+                  )}
+                </View>
               </View>
-            </View>
 
-            {/* Order Details */}
-            <View className="grid grid-cols-2 gap-2">
-              <DetailRow label="Pages" value={order.pages} />
-              <DetailRow label="Copies" value={order.sets} />
-              <DetailRow label="Type" value={order.color ? "Color" : "B&W"} />
-              <DetailRow label="Total" value={`₹${order.totalPrice}`} />
-            </View>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                <View style={{ width: "48%" }}>
+                  <DetailRow label="Pages" value={order.pages} />
+                </View>
+                <View style={{ width: "48%" }}>
+                  <DetailRow label="Copies" value={order.sets} />
+                </View>
+                <View style={{ width: "48%" }}>
+                  <DetailRow label="Type" value={order.color ? "Color" : "B&W"} />
+                </View>
+                <View style={{ width: "48%" }}>
+                  <DetailRow label="Total" value={`₹${order.totalPrice}`} />
+                </View>
+              </View>
 
-            <TouchableOpacity onPress={() => setSelectedOrder(order)} className="mt-3 px-4 py-2 bg-blue-500 rounded-xl">
-              <Text className="text-white text-center">View Details</Text>
-            </TouchableOpacity>
-          </MotiView>
-        ))
-      )}
+              <Pressable
+                onPress={() => setSelectedOrder(order)}
+                android_ripple={{ color: "#bfdbfe" }}
+                style={{
+                  marginTop: 12,
+                  backgroundColor: "#2563eb",
+                  paddingVertical: 10,
+                  borderRadius: 10,
+                  alignItems: "center",
+                  elevation: 2,
+                }}
+              >
+                <Text style={{ color: "white", fontWeight: "600" }}>View Details</Text>
+              </Pressable>
+            </MotiView>
+          ))
+        )}
 
-      {/* Selected Order Modal */}
-      {selectedOrder && (
-        <MotiView
-          className="absolute inset-0 bg-black/60 justify-center items-center"
-          from={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+        {/* Checkout button */}
+        {selectedTab === "pending" && pendingOrders.length > 0 && (
+          <Pressable
+            onPress={() => navigation.navigate("Cart")}
+            android_ripple={{ color: "#86efac" }}
+            style={{
+              backgroundColor: "#16a34a",
+              borderRadius: 14,
+              paddingVertical: 14,
+              flexDirection: "row",
+              justifyContent: "center",
+              alignItems: "center",
+              marginTop: 12,
+              elevation: 4,
+            }}
+          >
+            <FontAwesome5 name="shopping-cart" size={20} color="white" />
+            <Text style={{ color: "white", fontSize: 16, fontWeight: "700", marginLeft: 8 }}>
+              Proceed to Checkout ({pendingOrders.length})
+            </Text>
+          </Pressable>
+        )}
+      </ScrollView>
+
+      {/* Order Details Modal */}
+      <Modal visible={!!selectedOrder} transparent animationType="slide" onRequestClose={() => setSelectedOrder(null)}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            justifyContent: "flex-end",
+          }}
         >
-          <View className="bg-white dark:bg-slate-900 rounded-2xl p-4 w-11/12 max-w-md">
-            <Text className="text-lg font-bold mb-2">Order #{selectedOrder._id.slice(-6)}</Text>
-            <DetailRow label="Pages" value={selectedOrder.pages} />
-            <DetailRow label="Copies" value={selectedOrder.sets} />
-            <DetailRow label="Type" value={selectedOrder.color ? "Color" : "B&W"} />
-            <DetailRow label="Total" value={`₹${selectedOrder.totalPrice}`} />
-            {selectedOrder.notes && <DetailRow label="Notes" value={selectedOrder.notes} />}
-            <TouchableOpacity onPress={() => setSelectedOrder(null)} className="mt-4 bg-red-500 rounded-xl p-2">
-              <Text className="text-white text-center">Close</Text>
-            </TouchableOpacity>
+          <View
+            style={{
+              backgroundColor: "white",
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              padding: 20,
+              maxHeight: "75%",
+              elevation: 10,
+            }}
+          >
+            <Text style={{ fontSize: 18, fontWeight: "bold", color: "#111", marginBottom: 10 }}>
+              Order #{selectedOrder?._id.slice(-6)}
+            </Text>
+            {selectedOrder && (
+              <>
+                <DetailRow label="Pages" value={selectedOrder.pages} />
+                <DetailRow label="Copies" value={selectedOrder.sets} />
+                <DetailRow label="Type" value={selectedOrder.color ? "Color" : "B&W"} />
+                <DetailRow label="Size" value={selectedOrder.size} />
+                {selectedOrder.binding && (
+                  <DetailRow label="Binding" value={selectedOrder.binding === "none" ? "None" : selectedOrder.binding} />
+                )}
+                <DetailRow label="Total" value={`₹${selectedOrder.totalPrice}`} />
+                {selectedOrder.notes && <DetailRow label="Notes" value={selectedOrder.notes} />}
+                {selectedOrder.vendorId?.shopName && (
+                  <DetailRow label="Vendor" value={selectedOrder.vendorId.shopName} />
+                )}
+              </>
+            )}
+            <Pressable
+              onPress={() => setSelectedOrder(null)}
+              android_ripple={{ color: "#fecaca" }}
+              style={{
+                backgroundColor: "#ef4444",
+                borderRadius: 12,
+                paddingVertical: 12,
+                marginTop: 16,
+                alignItems: "center",
+                elevation: 3,
+              }}
+            >
+              <Text style={{ color: "white", fontWeight: "600" }}>Close</Text>
+            </Pressable>
           </View>
-        </MotiView>
-      )}
-    </ScrollView>
+        </View>
+      </Modal>
+
+      <BottomNavigation />
+    </SafeAreaView>
   );
 };
 
