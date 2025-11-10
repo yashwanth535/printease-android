@@ -13,6 +13,7 @@ import {
   Pressable
 } from 'react-native';
 import { Eye, EyeOff, X } from 'lucide-react-native';
+import { API_URL } from '@env';
 
 interface SignUpProps {
   visible: boolean;
@@ -21,7 +22,6 @@ interface SignUpProps {
 }
 
 const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
-  const API_URL = process.env.API_URL;
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');

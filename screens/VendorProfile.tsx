@@ -5,8 +5,9 @@ import { StackNavigationProp } from "@react-navigation/stack";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { RootStackParamList } from "../roots/types";
 import UserHeader from "../components/global/UserHeader";
+import { API_URL } from '@env';
 
-const API_URL = process.env.API_URL as string;
+const API_URL_TYPED = API_URL as string;
 
 type NavigationProp = StackNavigationProp<RootStackParamList, "VendorProfile">;
 type RouteProp = RouteProp<RootStackParamList, "VendorProfile">;
@@ -54,7 +55,7 @@ const VendorProfile: React.FC = () => {
   const fetchVendorDetails = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/vendors/${vendorId}`, {
+      const response = await fetch(`${API_URL_TYPED}/api/vendors/${vendorId}`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
       });

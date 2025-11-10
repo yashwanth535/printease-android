@@ -4,8 +4,9 @@ import { FontAwesome5 } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
 import UserHeader from "../components/global/UserHeader";
 import BottomNavigation from "../components/global/BottomNavigation";
+import { API_URL } from '@env';
 
-const API_URL = process.env.API_URL as string;
+const API_URL_TYPED = API_URL as string;
 
 interface TokenJSON {
   email: string;
@@ -58,7 +59,7 @@ const PaymentsHistory: React.FC = () => {
     if (!token) return;
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/order/mobile`, {
+      const response = await fetch(`${API_URL_TYPED}/api/order/mobile`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(token),

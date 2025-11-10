@@ -3,8 +3,9 @@ import { View, Text, ScrollView, ActivityIndicator, SafeAreaView } from "react-n
 import { FontAwesome5 } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
 import UserHeader from "../components/global/UserHeader";
+import { API_URL } from '@env';
 
-const API_URL = process.env.API_URL as string;
+const API_URL_TYPED = API_URL as string;
 
 interface TokenJSON {
   email: string;
@@ -52,7 +53,7 @@ const Notifications: React.FC = () => {
     if (!token) return;
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/user/mobile/logs`, {
+      const response = await fetch(`${API_URL_TYPED}/api/user/mobile/logs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(token),

@@ -7,8 +7,9 @@ import { FontAwesome5 } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
 import { RootStackParamList } from "../roots/types";
 import UserHeader from "../components/global/UserHeader";
+import { API_URL } from '@env';
 
-const API_URL = process.env.API_URL as string;
+const API_URL_TYPED = API_URL as string;
 
 type NavigationProp = StackNavigationProp<RootStackParamList, "Cart">;
 
@@ -67,7 +68,7 @@ const Cart: React.FC = () => {
     if (!token) return;
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/order/mobile`, {
+      const response = await fetch(`${API_URL_TYPED}/api/order/mobile`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(token),
@@ -132,7 +133,7 @@ const Cart: React.FC = () => {
           if (!token) return;
           try {
             setDeletingOrder(orderId);
-            const response = await fetch(`${API_URL}/api/order/mobile/delete`, {
+            const response = await fetch(`${API_URL_TYPED}/api/order/mobile/delete`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ ...token, orderId }),

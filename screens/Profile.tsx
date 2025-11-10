@@ -6,8 +6,9 @@ import { FontAwesome5 } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
 import { RootStackParamList } from "../roots/types";
 import UserHeader from "../components/global/UserHeader";
+import { API_URL } from '@env';
 
-const API_URL = process.env.API_URL as string;
+const API_URL_TYPED = API_URL as string;
 
 type NavigationProp = StackNavigationProp<RootStackParamList, "Profile">;
 
@@ -59,7 +60,7 @@ const Profile: React.FC = () => {
     if (!token) return;
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/user/mobile/profile`, {
+      const response = await fetch(`${API_URL_TYPED}/api/user/mobile/profile`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(token),
@@ -81,7 +82,7 @@ const Profile: React.FC = () => {
     if (!token) return;
     try {
       setSaving(true);
-      const response = await fetch(`${API_URL}/api/user/mobile/update-profile`, {
+      const response = await fetch(`${API_URL_TYPED}/api/user/mobile/update-profile`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...token, ...editedData }),

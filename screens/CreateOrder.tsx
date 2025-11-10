@@ -19,8 +19,9 @@ import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
 import { RootStackParamList } from "../roots/types";
 import UserHeader from "../components/global/UserHeader";
+import { API_URL, SUPABASE_URL, EXPO_PUBLIC_SUPABASE_URL } from '@env';
 
-const API_URL = process.env.API_URL as string;
+const API_URL_TYPED = API_URL as string;
 
 // Helper function to decode base64 to Uint8Array (since atob might not be available in React Native)
 const base64ToBytes = (base64: string): Uint8Array => {
@@ -118,7 +119,7 @@ const CreateOrder: React.FC = () => {
   const fetchVendorDetails = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/vendors/${vendorId}`, {
+      const response = await fetch(`${API_URL_TYPED}/api/vendors/${vendorId}`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
       });
@@ -164,7 +165,7 @@ const CreateOrder: React.FC = () => {
     try {
       setUploading(true);
       // Get signed URL
-      const signedUrlResponse = await fetch(`${API_URL}/api/user/mobile/signed-url`, {
+      const signedUrlResponse = await fetch(`${API_URL_TYPED}/api/user/mobile/signed-url`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -196,8 +197,8 @@ const CreateOrder: React.FC = () => {
 
       if (!uploadResponse.ok) throw new Error("Upload failed");
 
-      const SUPABASE_URL = process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL;
-      const fullUrl = `${SUPABASE_URL}/storage/v1/object/public/printease/${path}`;
+      const RESOLVED_SUPABASE_URL = SUPABASE_URL || EXPO_PUBLIC_SUPABASE_URL;
+      const fullUrl = `${RESOLVED_SUPABASE_URL}/storage/v1/object/public/printease/${path}`;
       setFileUrl(fullUrl);
       Alert.alert("Success", "File uploaded successfully!");
     } catch (err) {
@@ -239,7 +240,7 @@ const CreateOrder: React.FC = () => {
 
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/order/mobile/create`, {
+      const response = await fetch(`${API_URL_TYPED}/api/order/mobile/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...token, ...orderData }),

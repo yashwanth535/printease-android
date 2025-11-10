@@ -12,6 +12,7 @@ import {
   Pressable
 } from 'react-native';
 import { Eye, EyeOff, X } from 'lucide-react-native';
+import { API_URL } from '@env';
 
 interface ResetPasswordProps {
   visible: boolean;
@@ -20,7 +21,6 @@ interface ResetPasswordProps {
 }
 
 const ResetPassword = ({ visible, onClose, onSwitchToSignIn }: ResetPasswordProps) => {
-  const API_URL = process.env.API_URL;   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
