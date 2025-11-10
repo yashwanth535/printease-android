@@ -45,32 +45,46 @@ const SignIn = ({ visible, onClose, onSwitchToSignUp, onSwitchToResetPassword }:
   const handleSignIn = async () => {
     setMessage('');
     setLoading(true);
-    
+  
     try {
-      console.log(API_URL);
-      const response = await fetch(`${API_URL}/api/auth/signin`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password,isVendor:false }),
+      const requestUrl = `${API_URL}/api/auth/signin`;
+      const payload = { email, password, isVendor: false };
+  
+      console.log("🔗 REQUEST URL:", requestUrl);
+      console.log("📨 REQUEST BODY:", payload);
+  
+      const response = await fetch(requestUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-          await SecureStore.setItemAsync('accessToken', JSON.stringify(data.tokens));
-          console.log('✅ Access token stored successfully');
-          setMessage('Login successful!');
-          navigation.replace('Home')
+  
+      console.log("📥 RAW RESPONSE STATUS:", response.status);
+  
+      const data = await response.json().catch(() => null);
+      console.log("📥 RESPONSE JSON:", data);
+  
+      if (response.ok && data?.success) {
+        await SecureStore.setItemAsync("accessToken", JSON.stringify(data.tokens));
+        console.log("✅ Access token stored successfully");
+        setMessage("Login successful!");
+        navigation.replace("Home");
       } else {
-        setMessage(data.message);
+        console.warn("⚠️ LOGIN FAILED:", data?.message || "Unknown error");
+        setMessage(data?.message || "Invalid credentials");
       }
-    } catch (error) {
-      console.error('Error during signin:', error);
-      setMessage('Something went wrong. Please try again.');
+  
+    } catch (error: any) {
+      console.log("❌ NETWORK / FETCH ERROR");
+      console.log("   Type:", error?.name);
+      console.log("   Message:", error?.message);
+      console.log("   Full:", JSON.stringify(error, null, 2));
+      setMessage("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   };
+  
 
   return (
     <Modal

@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "PrintEase",
-    "slug": "PrintEase",
+    "slug": "my-expo-app",
     "version": "1.0.0",
     "web": {
       "favicon": "./assets/favicon.png"
@@ -33,7 +33,9 @@
     },
     "android": {
       "package": "com.printease.app",
-      "permissions": ["INTERNET"],
+      "permissions": [
+        "INTERNET"
+      ],
       "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/printer.png",
@@ -49,15 +51,18 @@
               "host": "payment-success"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
-
     "extra": {
       "eas": {
         "projectId": "686b0174-1133-4342-835d-eccce3cce58c"
       }
-    }
+    },
+    "owner": "yashwanth535"
   }
 }
