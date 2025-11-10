@@ -5,11 +5,69 @@ export default {
     name: "PrintEase",
     slug: "PrintEase",
     version: "1.0.0",
+
+    web: {
+      favicon: "./assets/favicon.png",
+    },
+
+    experiments: {
+      tsconfigPaths: true,
+    },
+
+    plugins: [
+      "expo-web-browser",
+    ],
+
+    orientation: "portrait",
+    icon: "./assets/printer.png",
+    userInterfaceStyle: "light",
+
+    splash: {
+      image: "./assets/splash.png",
+      resizeMode: "contain",
+      backgroundColor: "#ffffff",
+    },
+
+    assetBundlePatterns: ["**/*"],
+
+    scheme: "printease",
+
+    ios: {
+      supportsTablet: true,
+      bundleIdentifier: "com.printease.app",
+      associatedDomains: ["applinks:printease.app"],
+    },
+
     android: {
-      package: "com.yashwanth535.PrintEase",
+      package: "com.printease.app",
+      permissions: ["INTERNET"],
+      usesCleartextTraffic: true,
+      adaptiveIcon: {
+        foregroundImage: "./assets/printer.png",
+        backgroundColor: "#ffffff",
+      },
+      intentFilters: [
+        {
+          action: "VIEW",
+          autoVerify: true,
+          data: [
+            {
+              scheme: "printease",
+              host: "payment-success",
+            },
+          ],
+          category: ["BROWSABLE", "DEFAULT"],
+        },
+      ],
     },
+
     extra: {
-      API_URL: process.env.API_URL,
+      API_URL: process.env.API_URL,    // ✅ YOUR ENV NOW WORKS IN APK
+      eas: {
+        projectId: "686b0174-1133-4342-835d-eccce3cce58c",
+      },
     },
+
+    owner: "yashwanth535",
   },
 };
