@@ -2,7 +2,7 @@ import { useState } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from '@react-navigation/stack';
-import { API_URL } from '@env';
+import Constants from 'expo-constants';
 
 import {
   View,
@@ -36,6 +36,7 @@ type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'
 const SignIn = ({ visible, onClose, onSwitchToSignUp, onSwitchToResetPassword }: SignInProps) => {
   const navigation = useNavigation<LoginScreenNavigationProp>();
 
+  const API_URL = Constants.expoConfig?.extra?.API_URL as string;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);

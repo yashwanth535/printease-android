@@ -15,9 +15,9 @@ import * as SecureStore from "expo-secure-store";
 import { RootStackParamList } from "../roots/types";
 import UserHeader from "../components/global/UserHeader";
 import BottomNavigation from "../components/global/BottomNavigation";
-import { API_URL } from '@env';
+import Constants from "expo-constants";
 
-const API_URL_TYPED = API_URL as string;
+const API_URL = Constants.expoConfig?.extra?.API_URL as string;
 
 type NavigationProp = StackNavigationProp<RootStackParamList, "Vendors">;
 
@@ -77,7 +77,7 @@ const Vendors: React.FC = () => {
   const fetchVendors = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL_TYPED}/api/vendors`);
+      const response = await fetch(`${API_URL}/api/vendors`);
       const data = await response.json();
       if (data.success) setVendors(data.vendors);
     } catch (err) {
@@ -90,7 +90,7 @@ const Vendors: React.FC = () => {
   const fetchFavourites = async () => {
     if (!token) return;
     try {
-      const response = await fetch(`${API_URL_TYPED}/api/user/mobile/favourites`, {
+      const response = await fetch(`${API_URL}/api/user/mobile/favourites`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(token),
@@ -108,7 +108,7 @@ const Vendors: React.FC = () => {
       const endpoint = favourites.includes(vendorId)
         ? "remove"
         : "add";
-      await fetch(`${API_URL_TYPED}/api/user/mobile/favourites/${endpoint}`, {
+      await fetch(`${API_URL}/api/user/mobile/favourites/${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...token, vendorId }),

@@ -10,9 +10,9 @@ import { RootStackParamList } from "../roots/types";
 import UserHeader from "../components/global/UserHeader";
 import { initializeCashfreeCheckout, isCashfreeAvailable, parsePaymentResult } from "../utils/cashfree";
 import CashfreeWebView from "../components/payment/CashfreeWebView";
-import { API_URL } from '@env';
+import Constants from "expo-constants";
 
-const API_URL_TYPED = API_URL as string;
+const API_URL = Constants.expoConfig?.extra?.API_URL as string;
 // Force production mode for Cashfree
 // Change to false if you want to use sandbox
 const PROD_MODE = true; // Always use production mode
@@ -127,7 +127,7 @@ const Checkout: React.FC = () => {
 
       console.log("📤 Sending payment request:", { orderIds: selectedOrders, returnUrl: deepLinkUrl });
 
-      const response = await fetch(`${API_URL_TYPED}/api/order/mobile/create-payment`, {
+      const response = await fetch(`${API_URL}/api/order/mobile/create-payment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 

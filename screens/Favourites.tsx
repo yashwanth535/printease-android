@@ -7,9 +7,9 @@ import * as SecureStore from "expo-secure-store";
 import { RootStackParamList } from "../roots/types";
 import UserHeader from "../components/global/UserHeader";
 import BottomNavigation from "../components/global/BottomNavigation";
-import { API_URL } from '@env';
+import Constants from "expo-constants";
 
-const API_URL_TYPED = API_URL as string;
+const API_URL = Constants.expoConfig?.extra?.API_URL as string;
 
 type NavigationProp = StackNavigationProp<RootStackParamList, "Favourites">;
 
@@ -55,7 +55,7 @@ const Favourites: React.FC = () => {
     if (!token) return;
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL_TYPED}/api/user/mobile/favourites`, {
+      const response = await fetch(`${API_URL}/api/user/mobile/favourites`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(token),
@@ -81,7 +81,7 @@ const Favourites: React.FC = () => {
         style: "destructive",
         onPress: async () => {
           try {
-            const response = await fetch(`${API_URL_TYPED}/api/user/mobile/favourites/remove`, {
+            const response = await fetch(`${API_URL}/api/user/mobile/favourites/remove`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ ...token, vendorId }),

@@ -7,9 +7,9 @@ import { FontAwesome5 } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
 import { RootStackParamList } from "../roots/types";
 import UserHeader from "../components/global/UserHeader";
-import { API_URL } from '@env';
+import Constants from "expo-constants";
 
-const API_URL_TYPED = API_URL as string;
+const API_URL = Constants.expoConfig?.extra?.API_URL as string;
 
 type NavigationProp = StackNavigationProp<RootStackParamList, "PaymentSuccess">;
 type PaymentSuccessRouteProp = RouteProp<RootStackParamList, "PaymentSuccess">;
@@ -58,7 +58,7 @@ const PaymentSuccess: React.FC = () => {
     // Check order status directly from our database as fallback
     if (!token || !orderId) return;
     try {
-      const response = await fetch(`${API_URL_TYPED}/api/order/mobile`, {
+      const response = await fetch(`${API_URL}/api/order/mobile`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...token }),
@@ -89,7 +89,7 @@ const PaymentSuccess: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`${API_URL_TYPED}/api/order/mobile/verify-payment`, {
+      const response = await fetch(`${API_URL}/api/order/mobile/verify-payment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...token, orderId, totalAmount }),
