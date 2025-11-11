@@ -16,10 +16,9 @@ import { RouteProp } from "@react-navigation/native";
 import { FontAwesome5 } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
 import * as DocumentPicker from "expo-document-picker";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { RootStackParamList } from "../roots/types";
 import UserHeader from "../components/global/UserHeader";
-import Constants from "expo-constants";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 const EXPO_PUBLIC_SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -56,7 +55,8 @@ const base64ToBytes = (base64: string): Uint8Array => {
 };
 
 type NavigationProp = StackNavigationProp<RootStackParamList, "CreateOrder">;
-type RouteProp = RouteProp<RootStackParamList, "CreateOrder">;
+type CreateOrderRouteProp = RouteProp<RootStackParamList, "CreateOrder">;
+
 
 interface TokenJSON {
   email: string;
@@ -80,7 +80,7 @@ interface Vendor {
 
 const CreateOrder: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
-  const route = useRoute<RouteProp>();
+  const route = useRoute<CreateOrderRouteProp>();
   const { vendorId } = route.params || {};
   const [token, setToken] = useState<TokenJSON | null>(null);
   const [vendor, setVendor] = useState<Vendor | null>(null);

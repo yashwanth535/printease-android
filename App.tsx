@@ -19,6 +19,7 @@ import PaymentsHistory from "./screens/PaymentsHistory";
 import PaymentSuccess from "./screens/PaymentSuccess";
 import VendorProfile from "./screens/VendorProfile";
 import { RootStackParamList } from "./roots/types";
+import AuthGate from "./utils/AuthGate"
 
 const Stack = createNativeStackNavigator();
 
@@ -88,11 +89,11 @@ export default function App() {
     <>
       <NavigationContainer linking={linking} ref={navigationRef}>
         <Stack.Navigator
-          initialRouteName="Landing"
           screenOptions={{
-            headerShown: false, // hide default header for cleaner look
+            headerShown: false,
           }}
         >
+          <Stack.Screen name="AuthGate" component={AuthGate} />
           <Stack.Screen name="Landing" component={Landing} />
           <Stack.Screen name="Home" component={Home} />
           <Stack.Screen name="Cart" component={Cart} />
@@ -108,6 +109,7 @@ export default function App() {
           <Stack.Screen name="VendorProfile" component={VendorProfile} />
         </Stack.Navigator>
       </NavigationContainer>
+
       <StatusBar style="auto" />
     </>
   );

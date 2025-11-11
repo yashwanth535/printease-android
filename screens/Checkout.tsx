@@ -10,7 +10,6 @@ import { RootStackParamList } from "../roots/types";
 import UserHeader from "../components/global/UserHeader";
 import { initializeCashfreeCheckout, isCashfreeAvailable, parsePaymentResult } from "../utils/cashfree";
 import CashfreeWebView from "../components/payment/CashfreeWebView";
-import Constants from "expo-constants";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 // Force production mode for Cashfree
