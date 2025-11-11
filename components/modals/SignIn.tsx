@@ -36,7 +36,7 @@ type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'
 const SignIn = ({ visible, onClose, onSwitchToSignUp, onSwitchToResetPassword }: SignInProps) => {
   const navigation = useNavigation<LoginScreenNavigationProp>();
 
-  const API_URL = Constants.expoConfig?.extra?.API_URL as string;
+  const API_URL = process.env.EXPO_PUBLIC_API_URL;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);

@@ -3,7 +3,7 @@ import 'dotenv/config';
 export default {
   expo: {
     name: "PrintEase",
-    slug: "PrintEase",
+    slug: "my-expo-app",
     version: "1.0.0",
 
     web: {
@@ -62,7 +62,6 @@ export default {
     },
 
     extra: {
-      API_URL: process.env.API_URL,    // ✅ YOUR ENV NOW WORKS IN APK
       eas: {
         projectId: "686b0174-1133-4342-835d-eccce3cce58c",
       },

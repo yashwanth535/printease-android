@@ -21,7 +21,7 @@ interface ResetPasswordProps {
 }
 
 const ResetPassword = ({ visible, onClose, onSwitchToSignIn }: ResetPasswordProps) => {
-  const API_URL = Constants.expoConfig?.extra?.API_URL as string;
+  const API_URL = process.env.EXPO_PUBLIC_API_URL;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');

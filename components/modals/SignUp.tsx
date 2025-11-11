@@ -22,7 +22,7 @@ interface SignUpProps {
 }
 
 const SignUp = ({ visible, onClose, onSwitchToSignIn }: SignUpProps) => {
-  const API_URL = Constants.expoConfig?.extra?.API_URL as string;
+  const API_URL = process.env.EXPO_PUBLIC_API_URL;
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');

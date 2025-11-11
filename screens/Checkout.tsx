@@ -12,7 +12,7 @@ import { initializeCashfreeCheckout, isCashfreeAvailable, parsePaymentResult } f
 import CashfreeWebView from "../components/payment/CashfreeWebView";
 import Constants from "expo-constants";
 
-const API_URL = Constants.expoConfig?.extra?.API_URL as string;
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 // Force production mode for Cashfree
 // Change to false if you want to use sandbox
 const PROD_MODE = true; // Always use production mode

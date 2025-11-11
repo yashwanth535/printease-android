@@ -9,7 +9,7 @@ import { RootStackParamList } from "../roots/types";
 import UserHeader from "../components/global/UserHeader";
 import Constants from "expo-constants";
 
-const API_URL = Constants.expoConfig?.extra?.API_URL as string;
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 type NavigationProp = StackNavigationProp<RootStackParamList, "PaymentSuccess">;
 type PaymentSuccessRouteProp = RouteProp<RootStackParamList, "PaymentSuccess">;

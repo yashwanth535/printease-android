@@ -21,9 +21,8 @@ import { RootStackParamList } from "../roots/types";
 import UserHeader from "../components/global/UserHeader";
 import Constants from "expo-constants";
 
-const API_URL = Constants.expoConfig?.extra?.API_URL as string;
-const SUPABASE_URL = Constants.expoConfig?.extra?.SUPABASE_URL as string | undefined;
-const EXPO_PUBLIC_SUPABASE_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_URL as string | undefined;
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
+const EXPO_PUBLIC_SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
 
 // Helper function to decode base64 to Uint8Array (since atob might not be available in React Native)
 const base64ToBytes = (base64: string): Uint8Array => {
@@ -199,8 +198,7 @@ const CreateOrder: React.FC = () => {
 
       if (!uploadResponse.ok) throw new Error("Upload failed");
 
-      const RESOLVED_SUPABASE_URL = SUPABASE_URL || EXPO_PUBLIC_SUPABASE_URL;
-      const fullUrl = `${RESOLVED_SUPABASE_URL}/storage/v1/object/public/printease/${path}`;
+      const fullUrl = `${EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/public/printease/${path}`;
       setFileUrl(fullUrl);
       Alert.alert("Success", "File uploaded successfully!");
     } catch (err) {
