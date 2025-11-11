@@ -8,13 +8,13 @@ import * as SecureStore from "expo-secure-store";
 import * as Linking from "expo-linking";
 import { RootStackParamList } from "../roots/types";
 import UserHeader from "../components/global/UserHeader";
-import { initializeCashfreeCheckout, isCashfreeAvailable, parsePaymentResult } from "../utils/cashfree";
+import { isCashfreeAvailable, parsePaymentResult } from "../utils/cashfree";
 import CashfreeWebView from "../components/payment/CashfreeWebView";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 // Force production mode for Cashfree
 // Change to false if you want to use sandbox
-const PROD_MODE = true; // Always use production mode
+const PROD_MODE = process.env.EXPO_PUBLIC_PROD==='true'; // Always use production mode
 
 type NavigationProp = StackNavigationProp<RootStackParamList, "Checkout">;
 type CheckoutRouteProp = RouteProp<RootStackParamList, "Checkout">;

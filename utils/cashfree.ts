@@ -9,72 +9,53 @@ import * as Linking from 'expo-linking';
  * @param mode - 'sandbox' or 'production'
  * @returns Promise that resolves when payment browser is opened
  */
+
 export const initializeCashfreeCheckout = async (
   paymentSessionId: string,
   returnUrl: string,
-  mode: 'sandbox' | 'production' = 'production', // Default to production
   orderId?: string,
   paymentLink?: string
 ): Promise<void> => {
   try {
-    console.log('🛠️ Initializing Cashfree Checkout (Web SDK via Browser)...');
-    console.log('📦 Payment Session ID:', paymentSessionId);
+    // ✅ Determine environment from .env
+    const isProd = process.env.EXPO_PUBLIC_PROD === 'true';
+    const mode = isProd ? 'production' : 'sandbox';
+
+    console.log('🛠️ Initializing Cashfree Checkout...');
+    console.log('🌐 Running in:', mode.toUpperCase());
+    console.log('📦 Payment Session:', paymentSessionId);
     console.log('📋 Order ID:', orderId);
-    console.log('🔗 Payment Link (from backend):', paymentLink);
     console.log('🔁 Return URL:', returnUrl);
-    console.log('🌐 Mode:', mode);
+    console.log('🔗 Payment Link from backend:', paymentLink);
 
     let paymentUrl: string;
-    
-    // If Cashfree provided a payment_link, use it directly (most reliable)
+
+    // If backend provided payment_link → always use it (most stable)
     if (paymentLink) {
       paymentUrl = paymentLink;
-      console.log('✅ Using payment_link from Cashfree response');
+      console.log('✅ Using backend payment_link');
     } else {
-      // Construct Cashfree payment URL
-      // Based on Cashfree documentation, the payment gateway URL format should be:
-      // For direct payment page access, we need to use the correct endpoint
-      const baseUrl = mode === 'production' 
+      // Construct proper payment checkout URL (V3)
+      const baseUrl = isProd
         ? 'https://payments.cashfree.com'
         : 'https://sandbox.cashfree.com';
-      
-      // Try the correct Cashfree payment URL format
-      // According to Cashfree docs, the payment page URL is:
-      // https://payments.cashfree.com/pg/checkout/{payment_session_id}
-      // OR it might require using the payment link API endpoint
-      // Let's try the most common format first
+
       paymentUrl = `${baseUrl}/pg/checkout/${paymentSessionId}`;
-      
-      console.log('⚠️ Constructing payment URL manually');
-      console.log('📝 Using format: /pg/checkout/{payment_session_id}');
-      console.log('💡 Note: If this fails, check backend logs for Cashfree response structure');
+
+      console.log('⚠️ Constructed fallback checkout URL:', paymentUrl);
     }
-    
-    // The returnUrl is already set in order_meta when creating the payment session on backend
-    // Cashfree will automatically redirect to that URL after payment
 
-    console.log('🚀 Opening payment URL:', paymentUrl.substring(0, 100) + '...');
-    console.log('📋 URL Details:', { 
-      hasPaymentLink: !!paymentLink,
-      paymentSessionId: paymentSessionId?.substring(0, 30) + '...', 
-      orderId,
-      method: paymentLink ? 'direct_link' : 'html_page_with_sdk'
-    });
+    console.log('🚀 Opening Browser Checkout:', paymentUrl);
 
-    // Open payment page in browser
-    // When payment is complete, Cashfree will redirect to returnUrl
-    // which will be caught by our deep linking handler
     const result = await WebBrowser.openBrowserAsync(paymentUrl, {
       enableBarCollapsing: false,
       showInRecents: true,
     });
 
-    console.log('🌐 Browser result:', result);
+    console.log('🌐 Browser closed with result:', result);
     
-    // Note: The actual payment result will be handled via deep linking
-    // when Cashfree redirects to our returnUrl
   } catch (error: any) {
-    console.error('❌ Failed to open payment browser:', error);
+    console.error('❌ Failed to open Cashfree Checkout:', error);
     throw new Error(`Failed to open payment gateway: ${error.message || error}`);
   }
 };

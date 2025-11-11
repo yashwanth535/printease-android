@@ -5,7 +5,7 @@ import * as Linking from 'expo-linking';
 
 interface CashfreeWebViewProps {
   paymentSessionId: string;
-  orderId: string; // The Cashfree order_id from backend
+  orderId: string;
   returnUrl: string;
   mode: 'sandbox' | 'production';
   onPaymentComplete?: (urlOrData: string | { url?: string; orderId?: string }) => void;
@@ -21,8 +21,8 @@ const CashfreeWebView: React.FC<CashfreeWebViewProps> = ({
   onError,
 }) => {
   const webViewRef = useRef<WebView>(null);
+  const completionTriggered = useRef(false);
 
-  // Create HTML content with Cashfree SDK
   const htmlContent = `
 <!DOCTYPE html>
 <html lang="en">
@@ -94,25 +94,13 @@ const CashfreeWebView: React.FC<CashfreeWebViewProps> = ({
             const returnUrl = ${JSON.stringify(returnUrl)};
             const mode = ${JSON.stringify(mode)};
 
-            console.log('Cashfree Payment Page Initialized', { paymentSessionId, returnUrl, mode, orderId });
-            console.log('🔧 Cashfree Mode:', mode, mode === 'production' ? '✅ PRODUCTION' : '⚠️ SANDBOX');
+            console.log('🚀 Cashfree Payment Initialized', { paymentSessionId, returnUrl, mode, orderId });
 
             function showError(message) {
                 document.getElementById('loading').style.display = 'none';
                 const errorDiv = document.getElementById('error');
                 errorDiv.style.display = 'block';
                 errorDiv.innerHTML = '<p><strong>Error:</strong> ' + message + '</p>';
-            }
-
-            function notifyPaymentComplete(orderId) {
-                console.log('Notifying payment complete with orderId:', orderId);
-                if (window.ReactNativeWebView) {
-                    window.ReactNativeWebView.postMessage(JSON.stringify({
-                        type: 'PAYMENT_COMPLETE',
-                        url: returnUrl + (returnUrl.includes('?') ? '&' : '?') + 'order_id=' + orderId,
-                        orderId: orderId
-                    }));
-                }
             }
 
             function initPayment() {
@@ -122,9 +110,9 @@ const CashfreeWebView: React.FC<CashfreeWebViewProps> = ({
                 }
 
                 try {
-                    // Ensure mode is explicitly set (default to production if not specified)
-                    const cashfreeMode = mode || 'production';
+                    const cashfreeMode = mode;
                     console.log('🔧 Initializing Cashfree SDK with mode:', cashfreeMode);
+                    
                     const cashfree = window.Cashfree({
                         mode: cashfreeMode
                     });
@@ -135,139 +123,27 @@ const CashfreeWebView: React.FC<CashfreeWebViewProps> = ({
                         redirectTarget: '_self'
                     };
 
-                    console.log('Initializing Cashfree checkout', checkoutOptions);
+                    console.log('💳 Starting Cashfree checkout (redirect mode)', checkoutOptions);
+                    
+                    // IMPORTANT: For redirect mode (_self), do NOT handle the promise
+                    // The promise resolves when redirect starts, NOT when payment completes
+                    // We must wait for Cashfree to redirect back to returnUrl
                     cashfree.checkout(checkoutOptions);
-                    console.log('Cashfree checkout initialized successfully');
-
-                    // Monitor for payment completion indicators
-                    startPaymentMonitoring();
+                    
+                    console.log('✅ Cashfree checkout initiated - waiting for payment and redirect');
                 } catch (error) {
-                    console.error('Error initializing payment:', error);
+                    console.error('❌ Error initializing payment:', error);
                     showError(error.message || 'Failed to initialize payment gateway');
                 }
             }
 
-            function startPaymentMonitoring() {
-                // Monitor DOM for Cashfree success/completion indicators
-                const observer = new MutationObserver(function(mutations) {
-                    // Check for success indicators in the page
-                    const successIndicators = [
-                        document.querySelector('[class*="success"]'),
-                        document.querySelector('[class*="completed"]'),
-                        document.querySelector('[id*="success"]'),
-                        document.querySelector('[id*="completed"]'),
-                        document.querySelector('text*="Payment Successful"'),
-                        document.querySelector('text*="Payment Complete"'),
-                        document.querySelector('text*="Transaction Successful"')
-                    ].filter(Boolean);
-
-                    // Check URL for order_id parameter (Cashfree might add it)
-                    const currentUrl = window.location.href;
-                    const orderIdMatch = currentUrl.match(/order_id=([^&]+)/);
-                    if (orderIdMatch) {
-                        console.log('Order ID found in URL:', orderIdMatch[1]);
-                        notifyPaymentComplete(orderIdMatch[1]);
-                        observer.disconnect();
-                        return;
-                    }
-
-                    // Check if page content indicates success
-                    const pageText = document.body.innerText || document.body.textContent || '';
-                    if (pageText.includes('Payment Successful') || 
-                        pageText.includes('Transaction Successful') ||
-                        pageText.includes('Payment Complete')) {
-                        console.log('Payment success detected in page content');
-                        // Extract order_id from page if possible
-                        const orderIdFromText = pageText.match(/order[_\s]*id[:\s]*([A-Za-z0-9_-]+)/i);
-                        if (orderIdFromText) {
-                            notifyPaymentComplete(orderIdFromText[1]);
-                        } else {
-                            // Use paymentSessionId as fallback - extract order_id from it or use session ID
-                            const sessionOrderId = paymentSessionId.split('_')[0] || paymentSessionId;
-                            notifyPaymentComplete(sessionOrderId);
-                        }
-                        observer.disconnect();
-                    }
-                });
-
-                // Start observing DOM changes
-                observer.observe(document.body, {
-                    childList: true,
-                    subtree: true,
-                    characterData: true
-                });
-
-                // Also monitor for iframe changes (Cashfree might use iframes)
-                const iframeObserver = new MutationObserver(function(mutations) {
-                    const iframes = document.querySelectorAll('iframe');
-                    iframes.forEach(function(iframe) {
-                        try {
-                            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                            const iframeUrl = iframe.contentWindow.location.href;
-                            if (iframeUrl && iframeUrl.includes('order_id')) {
-                                const orderIdMatch = iframeUrl.match(/order_id=([^&]+)/);
-                                if (orderIdMatch) {
-                                    console.log('Order ID found in iframe URL:', orderIdMatch[1]);
-                                    notifyPaymentComplete(orderIdMatch[1]);
-                                    iframeObserver.disconnect();
-                                    observer.disconnect();
-                                }
-                            }
-                        } catch (e) {
-                            // Cross-origin iframe, can't access
-                        }
-                    });
-                });
-
-                iframeObserver.observe(document.body, {
-                    childList: true,
-                    subtree: true
-                });
-
-                // Monitor for "Go to next step" button or completion indicators
-                // Cashfree shows "checking payment" and then "taking too long? go to next step"
-                // When user sees this, payment is usually complete
-                let checkCount = 0;
-                const completionCheckInterval = setInterval(function() {
-                    checkCount++;
-                    const pageText = (document.body.innerText || document.body.textContent || '').toLowerCase();
-                    const currentUrl = window.location.href;
-                    
-                    // Check for completion indicators
-                    if (pageText.includes('go to next step') || 
-                        pageText.includes('taking too long') ||
-                        pageText.includes('payment successful') ||
-                        pageText.includes('transaction successful') ||
-                        (currentUrl.includes('cashfree.com') && 
-                         (currentUrl.includes('success') || currentUrl.includes('complete') || currentUrl.includes('verify')))) {
-                        console.log('Payment completion detected via page content or URL');
-                        // Extract order_id from URL or use paymentSessionId
-                        const orderIdMatch = currentUrl.match(/order_id=([^&]+)/) || 
-                                            pageText.match(/order[_\s]*id[:\s]*([a-z0-9_-]+)/i);
-                        const detectedOrderId = orderIdMatch ? orderIdMatch[1] : null;
-                        
-                        // Use detected order_id, or the one we already have from backend
-                        const finalOrderId = detectedOrderId || orderId;
-                        console.log('Using orderId for completion:', finalOrderId);
-                        notifyPaymentComplete(finalOrderId);
-                        clearInterval(completionCheckInterval);
-                        return;
-                    }
-                    
-                    // Stop checking after 2 minutes
-                    if (checkCount > 120) {
-                        clearInterval(completionCheckInterval);
-                    }
-                }, 1000); // Check every second
-            }
-
-            // Wait for Cashfree SDK to load
+            // Wait for SDK to load
             let attempts = 0;
-            const maxAttempts = 100; // 10 seconds
+            const maxAttempts = 100;
 
             function waitForCashfree() {
                 if (typeof window.Cashfree !== 'undefined') {
-                    console.log('Cashfree SDK loaded successfully');
+                    console.log('✅ Cashfree SDK loaded');
                     document.getElementById('loading').innerHTML = '<div class="spinner"></div><p>Initializing payment...</p>';
                     initPayment();
                 } else {
@@ -280,145 +156,92 @@ const CashfreeWebView: React.FC<CashfreeWebViewProps> = ({
                 }
             }
 
-            // Start waiting for SDK
             waitForCashfree();
-
-            // Monitor URL changes to detect payment completion
-            let lastUrl = window.location.href;
-            const urlCheckInterval = setInterval(function() {
-                const currentUrl = window.location.href;
-                if (currentUrl !== lastUrl) {
-                    lastUrl = currentUrl;
-                    console.log('URL changed to:', lastUrl);
-                    
-                    // Check if we've been redirected to the return URL
-                    if (lastUrl.includes('payment-success') || 
-                        lastUrl.includes('printease://') ||
-                        lastUrl.includes('order_id')) {
-                        console.log('Payment completion detected via URL change');
-                        const orderIdMatch = lastUrl.match(/order_id=([^&]+)/);
-                        const finalOrderId = orderIdMatch ? decodeURIComponent(orderIdMatch[1]) : orderId;
-                        notifyPaymentComplete(finalOrderId);
-                        clearInterval(urlCheckInterval);
-                    }
-                    // Also check if Cashfree redirected to a completion page
-                    else if (lastUrl.includes('cashfree.com') && 
-                             (lastUrl.includes('success') || lastUrl.includes('complete') || lastUrl.includes('verify'))) {
-                        console.log('Cashfree completion page detected');
-                        // Wait a bit for the page to load, then check for order_id
-                        setTimeout(function() {
-                            const orderIdMatch = lastUrl.match(/order_id=([^&]+)/) || 
-                                                document.body.innerText.match(/order[_\s]*id[:\s]*([A-Za-z0-9_-]+)/i);
-                            const finalOrderId = orderIdMatch ? decodeURIComponent(orderIdMatch[1]) : orderId;
-                            notifyPaymentComplete(finalOrderId);
-                        }, 2000);
-                    }
-                }
-            }, 1000); // Check every second
-
-            // Listen for Cashfree payment completion events
-            window.addEventListener('message', function(event) {
-                console.log('Message received:', event.data);
-                if (event.data && typeof event.data === 'string') {
-                    try {
-                        const data = JSON.parse(event.data);
-                        if (data.type === 'PAYMENT_COMPLETE' || data.order_id) {
-                            console.log('Payment completion message received');
-                            if (window.ReactNativeWebView) {
-                                window.ReactNativeWebView.postMessage(JSON.stringify({
-                                    type: 'PAYMENT_COMPLETE',
-                                    url: event.data
-                                }));
-                            }
-                        }
-                    } catch (e) {
-                        // Not JSON, ignore
-                    }
-                }
-            });
-
-            // Also listen for hash changes (some redirects use hash)
-            window.addEventListener('hashchange', function() {
-                console.log('Hash changed to:', window.location.href);
-                if (window.location.href.includes('payment-success') || 
-                    window.location.href.includes('order_id')) {
-                    if (window.ReactNativeWebView) {
-                        window.ReactNativeWebView.postMessage(JSON.stringify({
-                            type: 'PAYMENT_COMPLETE',
-                            url: window.location.href
-                        }));
-                    }
-                }
-            });
-
-            // Cleanup interval when page unloads
-            window.addEventListener('beforeunload', function() {
-                clearInterval(urlCheckInterval);
-            });
         })();
     </script>
 </body>
 </html>`;
 
-  // Intercept navigation requests to detect payment completion
   const handleShouldStartLoadWithRequest = (request: any): boolean => {
     const { url } = request;
-    console.log('WebView Should Start Load:', url);
+    console.log('🔍 WebView Should Start Load:', url);
 
-    // Check if the URL is the return URL (payment completed)
-    // Cashfree redirects to the return URL after payment
-    if (url && (
-      url.includes('payment-success') || 
-      url.includes('printease://') ||
-      url.startsWith('printease://') ||
-      url.includes(returnUrl.split('?')[0]) ||
-      (url.includes('order_id') && (url.includes('payment') || url.includes('success') || url.includes('printease')))
-    )) {
-      console.log('✅ Payment redirect detected in shouldStartLoad:', url);
-      if (onPaymentComplete) {
-        // Call immediately when redirect is detected
-        onPaymentComplete(url);
+    // Check if this is the return URL (payment completed)
+    if (url && !completionTriggered.current) {
+      const isReturnUrl = 
+        url.includes('payment-success') || 
+        url.includes('printease://') ||
+        url.startsWith('printease://') ||
+        url.includes(returnUrl.split('?')[0]);
+      
+      // Also check if URL has order_id parameter (Cashfree adds this)
+      const hasOrderId = url.includes('order_id=');
+      
+      if (isReturnUrl || (hasOrderId && (url.includes('payment') || url.includes('success')))) {
+        console.log('✅ Payment redirect detected:', url);
+        completionTriggered.current = true;
+        
+        if (onPaymentComplete) {
+          onPaymentComplete(url);
+        }
+        
+        // Prevent WebView from loading the deep link (it won't work in WebView)
+        return false;
       }
-      // Prevent WebView from loading the deep link URL (it won't work in WebView anyway)
-      return false;
     }
 
-    // Also check if it's a Cashfree completion page that might have a redirect button
-    if (url && (
-      url.includes('cashfree.com') && 
-      (url.includes('success') || url.includes('complete') || url.includes('verify'))
-    )) {
-      console.log('Cashfree completion page detected:', url);
-      // Allow it to load, but we'll monitor for redirects
-    }
-
-    // Allow other URLs to load
+    // Allow all other URLs to load
     return true;
   };
 
   const handleNavigationStateChange = (navState: any) => {
-    const { url } = navState;
-    console.log('WebView Navigation State Changed:', url);
+    const { url, loading } = navState;
+    console.log('🧭 Navigation State Changed:', { url, loading });
+    if (
+    !loading &&
+    url.includes("gateway/thankyou/process") &&
+    !completionTriggered.current
+  ) {
+    console.log("🎯 Payment Completed Stage Reached:", url);
 
-    // Also check navigation state changes as a fallback
-    if (url && (
-      url.includes('payment-success') || 
-      url.includes('printease://') ||
-      url.includes(returnUrl) ||
-      (url.includes('order_id') && (url.includes('payment') || url.includes('success')))
-    )) {
-      console.log('✅ Payment redirect detected in navigation state:', url);
-      if (onPaymentComplete) {
-        setTimeout(() => {
-          onPaymentComplete(url);
-        }, 100);
+    completionTriggered.current = true;
+
+    // Extract orderId if present, else fallback
+    const orderIdMatch = url.match(/order_id=([^&]+)/);
+    const orderId = orderIdMatch ? orderIdMatch[1] : propOrderId;
+
+    // Trigger your success navigation
+    if (onPaymentComplete) {
+      onPaymentComplete({ url, orderId });
+    }
+
+    return;
+  }
+    // Only check when navigation completes (loading = false)
+    if (!loading && url && !completionTriggered.current) {
+      const isReturnUrl = 
+        url.includes('payment-success') || 
+        url.includes('printease://') ||
+        url.includes(returnUrl);
+      
+      const hasOrderId = url.includes('order_id=');
+      
+      if (isReturnUrl || (hasOrderId && (url.includes('payment') || url.includes('success')))) {
+        console.log('✅ Payment redirect in navigation:', url);
+        completionTriggered.current = true;
+        
+        if (onPaymentComplete) {
+          setTimeout(() => {
+            onPaymentComplete(url);
+          }, 100);
+        }
       }
     }
   };
 
   const handleError = (syntheticEvent: any) => {
     const { nativeEvent } = syntheticEvent;
-    console.error('WebView error:', nativeEvent);
+    console.error('❌ WebView error:', nativeEvent);
     if (onError) {
       onError(nativeEvent.description || 'Failed to load payment gateway');
     }
@@ -433,27 +256,7 @@ const CashfreeWebView: React.FC<CashfreeWebViewProps> = ({
         onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
         onNavigationStateChange={handleNavigationStateChange}
         onMessage={(event) => {
-          try {
-            const data = JSON.parse(event.nativeEvent.data);
-            console.log('Message received from WebView:', data);
-            if (data.type === 'PAYMENT_COMPLETE') {
-              console.log('Payment completion message from WebView:', data);
-              if (onPaymentComplete) {
-                // Pass both URL and orderId if available
-                onPaymentComplete({
-                  url: data.url || '',
-                  orderId: data.orderId
-                });
-              }
-            }
-          } catch (e) {
-            console.log('Non-JSON message from WebView:', event.nativeEvent.data);
-            // Try to detect payment completion from raw message
-            const message = event.nativeEvent.data;
-            if (typeof message === 'string' && (message.includes('PAYMENT_COMPLETE') || message.includes('order_id'))) {
-              console.log('Potential payment completion detected in raw message');
-            }
-          }
+          console.log('📨 Message from WebView:', event.nativeEvent.data);
         }}
         onError={handleError}
         onHttpError={handleError}
@@ -466,30 +269,28 @@ const CashfreeWebView: React.FC<CashfreeWebViewProps> = ({
           </View>
         )}
         allowsBackForwardNavigationGestures={true}
+        // Monitor URL changes via injected JavaScript
         injectedJavaScript={`
-          // Make ReactNativeWebView available for communication
-          window.ReactNativeWebView = window.ReactNativeWebView || window.ReactNativeWebView;
-          
-          // Override window.location to intercept redirects
-          const originalLocation = window.location;
-          let currentUrl = originalLocation.href;
-          
-          // Check for payment completion every 500ms
-          setInterval(function() {
-            if (window.location.href !== currentUrl) {
-              currentUrl = window.location.href;
-              if (currentUrl.includes('payment-success') || 
-                  currentUrl.includes('printease://') ||
-                  currentUrl.includes('order_id')) {
-                if (window.ReactNativeWebView) {
-                  window.ReactNativeWebView.postMessage(JSON.stringify({
-                    type: 'PAYMENT_COMPLETE',
-                    url: currentUrl
-                  }));
+          (function() {
+            let lastUrl = window.location.href;
+            
+            // Check URL every 500ms
+            setInterval(function() {
+              const currentUrl = window.location.href;
+              if (currentUrl !== lastUrl) {
+                lastUrl = currentUrl;
+                console.log('📍 URL changed to:', currentUrl);
+                
+                // If we detect return URL patterns, log it
+                // The main detection happens in onShouldStartLoadWithRequest
+                if (currentUrl.includes('payment-success') || 
+                    currentUrl.includes('printease://') ||
+                    currentUrl.includes('order_id')) {
+                  console.log('🎯 Return URL detected in injected JS');
                 }
               }
-            }
-          }, 500);
+            }, 500);
+          })();
           
           true; // Required for injected JavaScript
         `}
@@ -520,4 +321,3 @@ const styles = StyleSheet.create({
 });
 
 export default CashfreeWebView;
-
